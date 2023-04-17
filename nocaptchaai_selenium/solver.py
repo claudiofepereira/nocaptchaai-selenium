@@ -375,7 +375,7 @@ class Solver:
 
         x_pos, y_pos = solve_response.json()["answer"]
 
-        canvas = self.driver.find_element(By.XPATH, "//canvas")
+        canvas = self.driver.find_element(By.XPATH, CAPTCHA_CANVAS)
 
         # This always clicks in the center, so we need to move the cursor negative pixels or positive depending
         # on the response from the API.
