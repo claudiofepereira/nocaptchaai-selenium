@@ -6,7 +6,7 @@ An example of how to use this library can be found in examples/nopecha_solver_ex
 
 """
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 DOCLINES = (__doc__ or "").split("\n")
 
@@ -15,7 +15,7 @@ setup(
     version="0.0.1",
     description="Selenium implementation of the NoCaptchaAI API",
     long_description="\n".join(DOCLINES[2:]),
-    url="https://github.com/claudiofepereira/nocaptchaai-playwright",
+    url="https://github.com/claudiofepereira/nocaptchaai-selenium",
     author="Cláudio Pereira",
     license="MIT",
     packages=["nocaptchaai_selenium"],

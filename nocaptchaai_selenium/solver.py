@@ -456,8 +456,6 @@ class Solver:
 
         self.user_agent = self.driver.execute_script("return navigator.userAgent")
 
-        print(self.balance, self.requests_left)
-
         while not self.solved:
             # First check if user has balance or daily limit hasn't been hit.
             if self.balance <= 0 and self.requests_left <= 0:
