@@ -32,7 +32,7 @@ def main() -> None:
     captcha_solver = Solver()
 
     while True:
-        driver.get("https://nopecha.com/demo/hcaptcha")
+        driver.get("https://nocaptchaai.com/demo/hcaptcha.html")
         captcha_solver.solve(driver)
 
 
