@@ -93,6 +93,7 @@ class Solver:
 
     def is_challenge_image_clickable(
         self,
+        wait: int = 2,
     ) -> bool:
         """
         Checks if the challenge image is clickable.
@@ -101,7 +102,7 @@ class Solver:
             bool: True if the challenge image is clickable, False otherwise.
         """
         try:
-            WDW(self.driver, 3).until(
+            WDW(self.driver, wait).until(
                 EC.element_to_be_clickable((By.XPATH, HOOK_CHALLENGE)),
             )
             return True
@@ -119,7 +120,7 @@ class Solver:
         Returns:
             bool: True if the captcha is visible, False otherwise.
         """
-        already_visible: bool = bool(self.is_challenge_image_clickable())
+        already_visible: bool = bool(self.is_challenge_image_clickable(wait=1))
 
         if not already_visible:
             # Check if the checkbox is visible.
@@ -131,7 +132,7 @@ class Solver:
                 time.sleep(1)
 
             # This could mean that simply clicking the checkbox solved the captcha.
-            if not self.is_challenge_image_clickable():
+            if not self.is_challenge_image_clickable(wait=10):
                 return False
 
         WDW(self.driver, 2).until(
@@ -161,7 +162,7 @@ class Solver:
         """
         time.sleep(1)
 
-        if not self.is_challenge_image_clickable():
+        if not self.is_challenge_image_clickable(wait=1):
             self.solved = True
             return
 
@@ -269,7 +270,7 @@ class Solver:
         """
         time.sleep(1)
 
-        if not self.is_challenge_image_clickable():
+        if not self.is_challenge_image_clickable(wait=1):
             self.solved = True
             return
 
