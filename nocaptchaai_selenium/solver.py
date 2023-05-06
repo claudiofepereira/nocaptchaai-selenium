@@ -440,18 +440,21 @@ class Solver:
             print(res_json["error"])
             return False
 
-        # Check if response has necessary keys.
-        if (
-            res_json["Subscription"]["plan"] != "free"
-            and (not res_json or "Balance" not in res_json or "Subscription" not in res_json)
-        ) or (res_json["Subscription"]["plan"] == "free" and "Subscription" not in res_json):
+        # Check if response has necessary keys. Will check for pro and free plans.
+        if (self.API_URL == "pro" and "Subscription" not in res_json or "Balance" not in res_json) or (
+            self.API_URL == "free" and "remaining" not in res_json
+        ):
             print("Response from the API didn't have necessary keys to check Balance/Remaining Solves.")
             self.api_error = True
             return False
 
         # Update balance and requests_left.
         self.balance = res_json["Balance"] if res_json["Subscription"]["plan"] != "free" else 0
-        self.requests_left = res_json["Subscription"]["remaining"]
+        self.requests_left = (
+            res_json["Subscription"]["remaining"]
+            if res_json["Subscription"]["plan"] != "free"
+            else res_json["remaining"]
+        )
         return True
 
     def solve(
