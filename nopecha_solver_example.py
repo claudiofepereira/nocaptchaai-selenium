@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from nocaptchaai_selenium.solver import Solver
 
-API_KEY: str = "your_api_key"
+API_KEY: str = "haegon-a7bee340-fe8b-a3fb-f46d-d82f6b5e8b7b"  # Speficy your api-key.
 API_URL: str = "https://pro.nocaptchaai.com/api/solve"  # Specify API URL (pro or not).
 
 
@@ -27,9 +27,16 @@ def main() -> None:
     os.environ["LANGUAGE"] = "en"
     options.add_argument(f"--lang={os.getenv('LANGUAGE')}")
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=options,
+    )
 
     captcha_solver = Solver()
+
+    # Check if an error happened while getting account information.
+    if captcha_solver.api_error:
+        return
 
     while True:
         driver.get("https://nocaptchaai.com/demo/hcaptcha.html")

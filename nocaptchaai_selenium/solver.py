@@ -1,4 +1,5 @@
 import base64
+import contextlib
 import random
 import re
 import requests
@@ -31,6 +32,7 @@ class Solver:
     API_KEY: str = None
     API_URL: str = None
 
+    api_error: bool = False
     balance: int = 0
     requests_left: int = 0
 
@@ -76,6 +78,7 @@ class Solver:
 
     def is_challenge_image_clickable(
         self,
+        wait_time: int = 2,
     ) -> bool:
         """
         Checks if the challenge image is clickable.
@@ -102,26 +105,19 @@ class Solver:
         Returns:
             bool: True if the captcha is visible, False otherwise.
         """
-        # Check if the images are already visible (no checkbox).
-        already_visible: bool = False
-
-        if self.is_challenge_image_clickable():
-            already_visible: bool = True
+        already_visible: bool = bool(self.is_challenge_image_clickable())
 
         if not already_visible:
             # Check if the checkbox is visible.
-            try:
+            with contextlib.suppress(TE):
                 WDW(self.driver, 1).until(
                     EC.element_to_be_clickable((By.XPATH, CHECKBOX_CHALLENGE)),
-                )
-                self.driver.find_element(By.XPATH, CHECKBOX_CHALLENGE).click()
-            except TE:
-                pass
-
+                ).click()
+                # self.driver.find_element(By.XPATH, CHECKBOX_CHALLENGE).click()
             time.sleep(1)
 
             # This could mean that simply clicking the checkbox solved the captcha.
-            if not self.is_challenge_image_clickable():
+            if not self.is_challenge_image_clickable(wait_time=3):
                 return False
 
         WDW(self.driver, 2).until(
@@ -151,7 +147,7 @@ class Solver:
         """
         time.sleep(1)
 
-        if not self.is_challenge_image_clickable():
+        if not self.is_challenge_image_clickable(wait_time=3):
             self.solved = True
             return
 
@@ -259,7 +255,7 @@ class Solver:
         """
         time.sleep(1)
 
-        if not self.is_challenge_image_clickable():
+        if not self.is_challenge_image_clickable(wait_time=3):
             self.solved = True
             return
 
@@ -426,16 +422,25 @@ class Solver:
         )
 
         if not response:
-            # Retry request.
-            self.has_balance()
+            self.api_error = True
+            return
+
+        res_json: list = response.json()
 
         # Check if get was successful.
-        if "error" in response.json():
+        if "error" in res_json:
             print(response.json()["error"])
+            self.api_error = True
             return False
 
-        self.balance = response.json()["Balance"]
-        self.requests_left = response.json()["Subscription"]["remaining"]
+        # Check if response has necessary keys.
+        if not res_json or "Balance" not in res_json or "Subscription" not in res_json:
+            print("Response from the API didn't have necessary keys to check Balance/Remaining Solves.")
+            self.api_error = True
+            return False
+
+        self.balance = res_json["Balance"]
+        self.requests_left = res_json["Subscription"]["remaining"]
 
     def solve(
         self,
