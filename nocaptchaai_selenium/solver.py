@@ -480,8 +480,6 @@ class Solver:
                 print("No balance/requests left on your nocatpchaAI account.")
                 return self.solved
 
-            time.sleep(2)
-
             # If captcha is not visible it means it has been solved.
             if not self.is_captcha_visible():
                 break
@@ -496,4 +494,7 @@ class Solver:
                     self.solve_hcaptcha_bbox()
                 case 2:
                     break
+
+            None if self.solved else time.sleep(2)
+
         return self.solved
