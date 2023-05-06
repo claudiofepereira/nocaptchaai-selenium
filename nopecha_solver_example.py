@@ -27,7 +27,10 @@ def main() -> None:
     os.environ["LANGUAGE"] = "en"
     options.add_argument(f"--lang={os.getenv('LANGUAGE')}")
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=options,
+    )
 
     captcha_solver = Solver()
 
