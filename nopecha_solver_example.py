@@ -4,8 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from nocaptchaai_selenium.solver import Solver
 
-API_KEY: str = "your_api_key"
-API_URL: str = "https://pro.nocaptchaai.com/api/solve"  # Specify API URL (pro or not).
+API_KEY: str = "your-api-key"
+API_URL: str = "pro"  # Specify if "free" or "pro".
 
 
 def main() -> None:
@@ -33,6 +33,9 @@ def main() -> None:
     )
 
     captcha_solver = Solver()
+
+    if captcha_solver.api_error:
+        return
 
     while True:
         driver.get("https://nocaptchaai.com/demo/hcaptcha.html")

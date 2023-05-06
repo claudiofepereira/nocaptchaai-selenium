@@ -24,6 +24,18 @@ CAPTCHA_SUBMIT_BUTTON: str = "(//div[@class='button-submit button'])[1]"
 CAPTCHA_REFRESH_BUTTON: str = "(//div[@class='refresh button'])[1]"
 TASK_IMAGE: str = "//div[@class='task-image']"
 
+NOCAPTCHAAI_ENDPOINTS: dict[str, list[str]] = {
+    "free": [
+        "https://free.nocaptchaai.com/balance",
+        "https://free.nocaptchaai.com/solve",
+    ],
+    "pro": [
+        "https://manage.nocaptchaai.com/balance",
+        "https://pro.nocaptchaai.com/api/solve",
+        "https://pro.nocaptchaai.com/status",
+    ],
+}
+
 
 class Solver:
     driver: webdriver = None
@@ -31,6 +43,7 @@ class Solver:
 
     API_KEY: str = None
     API_URL: str = None
+    API_ENDPOINTS: list[str] = None
 
     api_error: bool = False
     balance: int = 0
@@ -53,6 +66,8 @@ class Solver:
         """
         self.API_KEY = api_key if api_key is not None else os.getenv("API_KEY")
         self.API_URL = api_url if api_url is not None else os.getenv("API_URL")
+        self.API_ENDPOINTS = NOCAPTCHAAI_ENDPOINTS[self.API_URL]
+
         self.has_balance()
 
     def identify_challenge(
@@ -206,7 +221,7 @@ class Solver:
 
         # Post the problem and get the solution.
         r: Response = requests.post(
-            url=self.API_URL,
+            url=self.API_ENDPOINTS[1],
             headers={
                 "Content-Type": "application/json",
                 "apikey": self.API_KEY,
@@ -324,7 +339,7 @@ class Solver:
 
         # Post the problem.
         post_response: Response = requests.post(
-            url=self.API_URL,
+            url=self.API_ENDPOINTS[1],
             headers={
                 "Content-Type": "application/json",
                 "apikey": self.API_KEY,
@@ -409,14 +424,8 @@ class Solver:
         Returns:
             bool: True if the user has balance, False otherwise.
         """
-        balance_url: str = (
-            "https://manage.nocaptchaai.com/balance"
-            if "pro" in self.API_URL
-            else "https://free.nocaptchaai.com/balance"
-        )
-
         response: Response = requests.get(
-            balance_url,
+            self.API_ENDPOINTS[0],
             headers={"apikey": self.API_KEY},
         )
 
@@ -432,12 +441,16 @@ class Solver:
             return False
 
         # Check if response has necessary keys.
-        if not res_json or "Balance" not in res_json or "Subscription" not in res_json:
+        if (
+            res_json["Subscription"]["plan"] != "free"
+            and (not res_json or "Balance" not in res_json or "Subscription" not in res_json)
+        ) or (res_json["Subscription"]["plan"] == "free" and "Subscription" not in res_json):
             print("Response from the API didn't have necessary keys to check Balance/Remaining Solves.")
             self.api_error = True
             return False
 
-        self.balance = res_json["Balance"]
+        # Update balance and requests_left.
+        self.balance = res_json["Balance"] if res_json["Subscription"]["plan"] != "free" else 0
         self.requests_left = res_json["Subscription"]["remaining"]
         return True
 
