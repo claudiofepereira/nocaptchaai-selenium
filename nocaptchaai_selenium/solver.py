@@ -501,8 +501,6 @@ class Solver:
             # Identify the type of captcha.
             self.identify_challenge()
 
-            print(f"Identified captcha type: {self.captcha_type}")
-
             match self.captcha_type:
                 case 0:
                     self.solve_hcaptcha_grid()
