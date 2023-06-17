@@ -34,12 +34,12 @@ def main() -> None:
 
     captcha_solver = Solver()
 
-    if captcha_solver.api_error:
-        return
-
     while True:
         driver.get("https://nocaptchaai.com/demo/hcaptcha.html")
         captcha_solver.solve(driver)
+
+        if captcha_solver.api_error:
+            break
 
 
 if __name__ == "__main__":

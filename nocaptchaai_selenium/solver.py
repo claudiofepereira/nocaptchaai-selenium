@@ -36,6 +36,19 @@ NOCAPTCHAAI_ENDPOINTS: dict[str, list[str]] = {
     ],
 }
 
+GRID_CHALLENGE_PROMPTS: list[str] = [
+    "please click each image containing",
+    "please click on all images containing",
+]
+
+BOUNDING_BOX_CHALLENGE_PROMPTS: list[str] = [
+    "please click the center of the",
+]
+
+MULTIPLE_CHOICE_CHALLENGE_PROMPTS: list[str] = [
+    "select the most accurate description of the image",
+]
+
 
 class Solver:
     driver: webdriver = None
@@ -84,11 +97,11 @@ class Solver:
 
         # TODO Improve method of checking captcha version.
         # Check if keywords are present in the target.
-        if "please click each image containing" in target:
+        if any(keyword in target for keyword in GRID_CHALLENGE_PROMPTS):
             self.captcha_type = 0
-        if "please click the center of the" in target:
+        if any(keyword in target for keyword in BOUNDING_BOX_CHALLENGE_PROMPTS):
             self.captcha_type = 1
-        if "select the most accurate description of the image" in target:
+        if any(keyword in target for keyword in MULTIPLE_CHOICE_CHALLENGE_PROMPTS):
             self.captcha_type = 2
 
     def is_challenge_image_clickable(
@@ -436,7 +449,7 @@ class Solver:
 
         res_json: list = response.json()
 
-        # Check if get was successful.
+        # Check if request was successful.
         if "error" in res_json:
             print(res_json["error"])
             return False
@@ -475,8 +488,9 @@ class Solver:
         self.user_agent = self.driver.execute_script("return navigator.userAgent")
 
         while not self.solved:
-            # First check if user has balance or daily limit hasn't been hit.
+            # Check if user has balance or daily limit hasn't been hit.
             if self.balance <= 0 and self.requests_left <= 0:
+                self.api_error = True
                 print("No balance/requests left on your nocatpchaAI account.")
                 return self.solved
 
@@ -486,6 +500,8 @@ class Solver:
 
             # Identify the type of captcha.
             self.identify_challenge()
+
+            print(f"Identified captcha type: {self.captcha_type}")
 
             match self.captcha_type:
                 case 0:
