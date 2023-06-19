@@ -31,7 +31,7 @@ NOCAPTCHAAI_ENDPOINTS: dict[str, list[str]] = {
     ],
     "pro": [
         "https://manage.nocaptchaai.com/balance",
-        "https://pro.nocaptchaai.com/api/solve",
+        "https://pro.nocaptchaai.com/solve",
         "https://pro.nocaptchaai.com/status",
     ],
 }
