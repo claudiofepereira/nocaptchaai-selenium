@@ -1,5 +1,4 @@
 import os
-import time
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -45,8 +44,6 @@ def main() -> None:
 
         if captcha_solver.api_error:
             break
-
-        time.sleep(5)
 
     driver.quit()
 
