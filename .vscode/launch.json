@@ -8,7 +8,7 @@
             "name": "Python: selenium_nocaptchaai",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/nopecha_solver_example.py",
+            "program": "${workspaceFolder}/nopecha_solver_example.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }

@@ -1,14 +1,19 @@
 import os
-from webdriver_manager.chrome import ChromeDriverManager
+import time
+
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+
 from nocaptchaai_selenium.solver import Solver
 
-API_KEY: str = "your-api-key"
+API_KEY: str = "your_api_key"
 API_URL: str = "pro"  # Specify if "free" or "pro".
 
 
 def main() -> None:
+    """
+    Example of using the nocaptchaai-selenium package.
+    """
     os.environ["API_KEY"] = API_KEY
     os.environ["API_URL"] = API_URL
 
@@ -28,7 +33,7 @@ def main() -> None:
     options.add_argument(f"--lang={os.getenv('LANGUAGE')}")
 
     driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
+        service=Service(),
         options=options,
     )
 
@@ -40,6 +45,10 @@ def main() -> None:
 
         if captcha_solver.api_error:
             break
+
+        time.sleep(5)
+
+    driver.quit()
 
 
 if __name__ == "__main__":

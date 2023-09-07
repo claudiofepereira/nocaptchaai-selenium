@@ -1,19 +1,18 @@
 import base64
 import contextlib
+import os
 import random
 import re
+import time
+from json import dumps
+
 import requests
 from requests.models import Response
-from json import dumps
-import os
-import time
-
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait as WDW
 from selenium.common.exceptions import TimeoutException as TE
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait as WDW
 
 # Captcha xpath selectors.
 CHECKBOX_CHALLENGE: str = "(//iframe[contains(@title,'checkbox')])[1]"
@@ -43,6 +42,7 @@ GRID_CHALLENGE_PROMPTS: list[str] = [
 
 BOUNDING_BOX_CHALLENGE_PROMPTS: list[str] = [
     "please click the center of the",
+    "please click on the",
 ]
 
 MULTIPLE_CHOICE_CHALLENGE_PROMPTS: list[str] = [
@@ -51,37 +51,36 @@ MULTIPLE_CHOICE_CHALLENGE_PROMPTS: list[str] = [
 
 
 class Solver:
-    driver: webdriver = None
-    user_agent: str = None
+    """
+    Initializes the Solver object. Sets the API key and API url.
+    If the api_key and api_url are not provided, it will try to get them from the environment variables.
 
-    API_KEY: str = None
-    API_URL: str = None
-    API_ENDPOINTS: list[str] = None
+    Args:
+        api_key (str | None): The API key for the captcha solver.
+        api_url (str | None): The API url for the captcha solver.
+    """
+
+    driver: webdriver = None
+    user_agent: str
+
+    api_key: str
+    api_url: str
+    api_endpoints: list[str]
 
     api_error: bool = False
     balance: int = 0
     requests_left: int = 0
 
     solved: bool = False
-    target: str = None
-    captcha_type: int = None
+    target: str | None = None
+    captcha_type: int | None = None
 
     captcha_frame = None
 
     def __init__(self, api_key: str = None, api_url: str = None) -> None:
-        """
-        Initializes the Solver object. Sets the API key and API url.
-        If the api_key and api_url are not provided, it will try to get them from the environment variables.
-
-        Args:
-            api_key (str | None): The API key for the captcha solver.
-            api_url (str | None): The API url for the captcha solver.
-        """
-        self.API_KEY = api_key if api_key is not None else os.getenv("API_KEY")
-        self.API_URL = api_url if api_url is not None else os.getenv("API_URL")
-        self.API_ENDPOINTS = NOCAPTCHAAI_ENDPOINTS[self.API_URL]
-
-        self.has_balance()
+        self.api_key = api_key if api_key is not None else os.getenv("API_KEY")
+        self.api_url = api_url if api_url is not None else os.getenv("API_URL")
+        self.api_endpoints = NOCAPTCHAAI_ENDPOINTS[self.api_url]
 
     def identify_challenge(
         self,
@@ -185,10 +184,7 @@ class Solver:
         self.driver.switch_to.frame(self.captcha_frame)
 
         # Getting the images for the captcha solver.
-        images = self.driver.find_elements(
-            By.XPATH,
-            TASK_IMAGE,
-        )
+        images = self.driver.find_elements(By.XPATH, TASK_IMAGE)
 
         headers: dict[str, str] = {
             "Authority": "hcaptcha.com",
@@ -219,6 +215,7 @@ class Solver:
                 requests.get(
                     url,
                     headers=headers,
+                    timeout=2,
                 ).content
             )
             img_base64_decoded: str = img_base64.decode("utf-8")
@@ -235,12 +232,13 @@ class Solver:
 
         # Post the problem and get the solution.
         r: Response = requests.post(
-            url=self.API_ENDPOINTS[1],
+            url=self.api_endpoints[1],
             headers={
                 "Content-Type": "application/json",
-                "apikey": self.API_KEY,
+                "apikey": self.api_key,
             },
             data=dumps(data_to_send),
+            timeout=2,
         )
 
         # Decrease the requests_left counter.
@@ -251,7 +249,7 @@ class Solver:
             correct_images: list[int] = list(map(int, solution))
 
             for index in correct_images:
-                images[index].click()
+                self.driver.execute_script("arguments[0].click();", images[index])
                 time.sleep(random.uniform(0.2, 0.25))
 
             button = self.driver.find_element(By.XPATH, CAPTCHA_SUBMIT_BUTTON)
@@ -272,8 +270,6 @@ class Solver:
             self.driver.switch_to.default_content()
 
             time.sleep(1)
-
-        return
 
     def solve_hcaptcha_bbox(
         self,
@@ -353,12 +349,13 @@ class Solver:
 
         # Post the problem.
         post_response: Response = requests.post(
-            url=self.API_ENDPOINTS[1],
+            url=self.api_endpoints[1],
             headers={
                 "Content-Type": "application/json",
-                "apikey": self.API_KEY,
+                "apikey": self.api_key,
             },
             data=dumps(data_to_send),
+            timeout=2,
         )
 
         # Decrease the requests_left counter.
@@ -372,7 +369,7 @@ class Solver:
 
         headers: dict[str, str] = {
             "Accept-Language": "last-requested-languages",
-            "apikey": self.API_KEY,
+            "apikey": self.api_key,
         }
 
         url: str = post_response.json()["url"]
@@ -384,6 +381,7 @@ class Solver:
             solve_response: Response = requests.get(
                 url=url,
                 headers=headers,
+                timeout=1,
             )
 
             if solve_response.json()["status"] in ["error", "skip"]:
@@ -401,7 +399,8 @@ class Solver:
 
         canvas = self.driver.find_element(By.XPATH, CAPTCHA_CANVAS)
 
-        # This always clicks in the center, so we need to move the cursor negative pixels or positive depending
+        # This always clicks in the center,
+        # so we need to move the cursor negative pixels or positive depending
         # on the response from the API.
         move_by_x: int = canvas.size["width"] / 2 - x_pos
         move_by_y: int = canvas.size["height"] / 2 - y_pos
@@ -431,7 +430,7 @@ class Solver:
 
     def has_balance(
         self,
-    ) -> bool:
+    ) -> None:
         """
         Checks if the user has balance or if the daily limit has been hit.
 
@@ -439,8 +438,9 @@ class Solver:
             bool: True if the user has balance, False otherwise.
         """
         response: Response = requests.get(
-            self.API_ENDPOINTS[0],
-            headers={"apikey": self.API_KEY},
+            self.api_endpoints[0],
+            headers={"apikey": self.api_key},
+            timeout=2,
         )
 
         if not response:
@@ -452,21 +452,20 @@ class Solver:
         # Check if request was successful.
         if "error" in res_json:
             print(res_json["error"])
-            return False
+            return
 
-        if self.API_URL == "pro" and "Subscription" in res_json and "Balance" in res_json:
+        if self.api_url == "pro" and "Subscription" in res_json and "Balance" in res_json:
             self.balance = res_json["Balance"]
             self.requests_left = res_json["Subscription"]["remaining"]
-            return True
+            return
 
-        if self.API_URL == "free" and "remaining" in res_json:
+        if self.api_url == "free" and "remaining" in res_json:
             self.balance = 0
             self.requests_left = res_json["remaining"]
-            return True
+            return
 
         print("Response from the API didn't have necessary keys to check Balance/Remaining Solves.")
         self.api_error = True
-        return False
 
     def solve(
         self,
@@ -488,6 +487,8 @@ class Solver:
         self.user_agent = self.driver.execute_script("return navigator.userAgent")
 
         while not self.solved:
+            self.has_balance()
+
             # Check if user has balance or daily limit hasn't been hit.
             if self.balance <= 0 and self.requests_left <= 0:
                 self.api_error = True
@@ -509,6 +510,7 @@ class Solver:
                 case 2:
                     break
 
-            None if self.solved else time.sleep(2)
+            if not self.solved:
+                time.sleep(2)
 
         return self.solved
