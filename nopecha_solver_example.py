@@ -38,12 +38,15 @@ def main() -> None:
 
     captcha_solver = Solver()
 
-    while True:
+    while not captcha_solver.solved:
         driver.get("https://nocaptchaai.com/demo/hcaptcha.html")
+
         captcha_solver.solve(driver)
 
         if captcha_solver.api_error:
             break
+
+    print("Solved")
 
     driver.quit()
 

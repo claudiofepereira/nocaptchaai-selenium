@@ -9,7 +9,7 @@ from json import dumps
 import requests
 from requests.models import Response
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException as TE
+from selenium.common.exceptions import TimeoutException as TE, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait as WDW
@@ -136,7 +136,7 @@ class Solver:
 
         if not already_visible:
             # Check if the checkbox is visible.
-            with contextlib.suppress(TE):
+            with contextlib.suppress(TE, NoSuchElementException):
                 WDW(self.driver, 1).until(
                     EC.element_to_be_clickable((By.XPATH, CHECKBOX_CHALLENGE)),
                 ).click()
@@ -144,7 +144,7 @@ class Solver:
                 time.sleep(1)
 
             # This could mean that simply clicking the checkbox solved the captcha.
-            if not self.is_challenge_image_clickable(wait=10):
+            if not self.is_challenge_image_clickable(wait=3):
                 return False
 
         WDW(self.driver, 2).until(
@@ -262,7 +262,7 @@ class Solver:
             self.driver.switch_to.default_content()
 
             # Checking if there's another step to solve.
-            if label == "Next Challenge":
+            if "Next" in label:
                 self.solve_hcaptcha_grid()
 
         elif r.json()["status"] in ["skip", "error"]:
@@ -497,6 +497,7 @@ class Solver:
 
             # If captcha is not visible it means it has been solved.
             if not self.is_captcha_visible():
+                self.solved = True
                 break
 
             # Identify the type of captcha.
@@ -510,7 +511,6 @@ class Solver:
                 case 2:
                     break
 
-            if not self.solved:
-                time.sleep(2)
+            time.sleep(2)
 
         return self.solved
